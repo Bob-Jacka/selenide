@@ -260,6 +260,44 @@ public class AppTests {
     }
 
     @Test
+    public void shouldNotFillFormIfChineseName() throws InterruptedException {
+        open(site);
+        $("[data-test-id='city'] .input__control").sendKeys("Воронеж");
+        $("[data-test-id='name'] .input__control").sendKeys("二月五 十八月");
+        $("[data-test-id='phone'] .input__control").setValue("+89635452462");
+
+        $("[data-test-id='agreement']").click();
+        $("[type='button'].button").click();
+
+        String actText = $("[data-test-id='name'] .input__sub").getText();
+        String expName = "Имя и Фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы.";
+
+        assertTrue($(".spin").is(Condition.hidden));
+        Thread.sleep(15000);
+        assertTrue($(".notification").is(Condition.hidden));
+        assertEquals(expName, actText);
+    }
+
+    @Test
+    public void shouldNotFillFormIfChineseCity() throws InterruptedException {
+        open(site);
+        $("[data-test-id='city'] .input__control").sendKeys("二月五 十八月");
+        $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
+        $("[data-test-id='phone'] .input__control").setValue("+89635452462");
+
+        $("[data-test-id='agreement']").click();
+        $("[type='button'].button").click();
+
+        String actText = $("[data-test-id='city'] .input__sub").getText();
+        String expName = "Доставка в выбранный город недоступна";
+
+        assertTrue($(".spin").is(Condition.hidden));
+        Thread.sleep(15000);
+        assertTrue($(".notification").is(Condition.hidden));
+        assertEquals(expName, actText);
+    }
+
+    @Test
     public void shouldNotFillFormWithoutAgreement() throws InterruptedException {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
@@ -514,6 +552,23 @@ public class AppTests {
         assertEquals(expCity, actCity);
         assertTrue($(".notification").is(Condition.hidden));
         assertDoesNotThrow(() -> $("[data-test-id='agreement'] .input_invalid"));
+    }
+
+    @Test
+    public void shouldNotFillFormIfCity1Letter() {
+        open(site);
+        $("[data-test-id='city'] .input__control").sendKeys("И");
+        assertTrue($("[data-test-id='city'] .popup_visible").is(Condition.hidden));
+
+        $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
+        $("[data-test-id='phone'] .input__control").setValue("+89635452462");
+
+        $("[data-test-id='agreement']").click();
+        $("[type='button'].button").click();
+        ;
+        assertTrue($(".spin").is(Condition.hidden));
+        assertDoesNotThrow(() -> $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15)));
+        assertTrue($(".notification").is(Condition.hidden));
     }
 
 }
