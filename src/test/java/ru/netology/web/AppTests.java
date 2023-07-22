@@ -1,18 +1,25 @@
 package ru.netology.web;
 
 import com.codeborne.selenide.Condition;
-import com.codeborne.selenide.ElementsCollection;
 import org.junit.jupiter.api.Test;
+import org.openqa.selenium.Keys;
 
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 import static com.codeborne.selenide.Selenide.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 public class AppTests {
-    private String site = "http://localhost:9999/";
+    private final String site = "http://localhost:9999/";
+
+    private String generatePlusDate(long toAddDays) {
+        return (LocalDate.now().plusDays(toAddDays).format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+    }
+
+    private String generateMinusDate(long toMinusDays) {
+        return (LocalDate.now().minusDays(toMinusDays).format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+    }
 
     @Test
     public void shouldFillFormValid() {
@@ -24,9 +31,8 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        assertTrue($(".spin").isDisplayed());
-        assertDoesNotThrow(() -> $(".notification").shouldBe(Condition.visible, Duration.ofSeconds(15)));
-        assertTrue($(".notification").isDisplayed());
+        $(".spin").shouldBe(Condition.visible, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
@@ -39,12 +45,10 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        assertTrue($(".spin").isDisplayed());
-        $(".notification").shouldBe(Condition.visible, Duration.ofSeconds(15));
-        String actTextNotification = $(".notification__content").getText();
-        String expTextNotification = "Встреча успешно забронирована на " + (LocalDate.now().plusDays(3).format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-        assertEquals(expTextNotification, actTextNotification);
-        assertTrue($(".notification").isDisplayed());
+        $(".spin").shouldBe(Condition.visible, Duration.ofSeconds(15));
+        $(".notification").shouldHave(Condition.text("Встреча успешно забронирована на " + generatePlusDate(3)),
+                        Duration.ofSeconds(15))
+                .shouldBe(Condition.visible);
     }
 
     @Test
@@ -57,33 +61,10 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        assertTrue($(".spin").isDisplayed());
-        $("[data-test-id='notification']").shouldBe(Condition.visible, Duration.ofSeconds(15));
-
-        String actTextNotification = $(".notification__content").getText();
-        String expTextNotification = "Встреча успешно забронирована на " + (LocalDate.now().plusDays(3).format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-
-        assertEquals(expTextNotification, actTextNotification);
-        assertTrue($(".notification").isDisplayed());
-    }
-
-    @Test
-    public void shouldNotFillFormIfSpacesInCity() throws InterruptedException {
-        open(site);
-        $("[data-test-id='city'] .input__control").sendKeys("Ижевск     ");
-        $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
-        $("[data-test-id='phone'] .input__control").setValue("+89635452462");
-
-        $("[data-test-id='agreement']").click();
-        $("[type='button'].button").click();
-
-        String actText = $("[data-test-id='city'] .input__sub").getText();
-        String expText = "Доставка в выбранный город недоступна";
-
-        assertFalse($(".spin").isDisplayed());
-        Thread.sleep(1500);
-        assertFalse($(".notification").isDisplayed());
-        assertEquals(expText, actText);
+        $(".spin").shouldBe(Condition.visible, Duration.ofSeconds(15));
+        $(".notification").shouldHave(Condition.text("Встреча успешно забронирована на " + generatePlusDate(3)),
+                        Duration.ofSeconds(15))
+                .shouldBe(Condition.visible);
     }
 
     @Test
@@ -96,46 +77,18 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        assertTrue($(".spin").isDisplayed());
-        $("[data-test-id='notification']").shouldBe(Condition.visible, Duration.ofSeconds(15));
-
-        String actTextNotification = $(".notification__content").getText();
-        String expTextNotification = "Встреча успешно забронирована на "
-                + (LocalDate.now().plusDays(3).format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-
-        assertEquals(expTextNotification, actTextNotification);
-        assertTrue($(".notification").isDisplayed());
+        $(".spin").shouldBe(Condition.visible, Duration.ofSeconds(15));
+        $(".notification__content").shouldHave(Condition.partialText("Встреча успешно забронирована на " + generatePlusDate(3)),
+                        Duration.ofSeconds(15))
+                .shouldBe(Condition.visible);
     }
 
     @Test
-    public void shouldFillFormIfMoreThanThreeDay() throws InterruptedException {
+    public void shouldFillFormIfMoreThanThreeDay() {
         open(site);
+        String ldt = generatePlusDate(10);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
-        for (int i = 0; i < 8; i++) {
-            $("[data-test-id='date'] .input__control").sendKeys("\b");
-        }
-        $("[data-test-id='date'] .input__control").setValue(
-                LocalDate.now().plusDays(20).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
-        );
-        $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
-        $("[data-test-id='phone'] .input__control").setValue("+89635459562");
-
-        $("[data-test-id='agreement']").click();
-        $("[type='button'].button").click();
-        assertTrue($(".spin").isDisplayed());
-        Thread.sleep(15000);
-        assertDoesNotThrow(() -> $("[data-test-id='notification']").shouldBe(Condition.partialText("Встреча успешно забронирована на ")));
-        assertTrue($(".notification").isDisplayed());
-    }
-
-    @Test
-    public void shouldFillFormIfSelectedMonthForward() throws InterruptedException {
-        String ldt = LocalDate.now().plusMonths(1).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-        open(site);
-        $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
-        for (int i = 0; i < 8; i++) {
-            $("[data-test-id='date'] .input__control").sendKeys("\b");
-        }
+        $("[data-test-id='date'] input").sendKeys(Keys.chord(Keys.SHIFT, Keys.HOME), Keys.BACK_SPACE);
         $("[data-test-id='date'] .input__control").setValue(ldt);
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
         $("[data-test-id='phone'] .input__control").setValue("+89635459562");
@@ -143,67 +96,69 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-
-        String expTextNotification = "Встреча успешно забронирована на " + ldt;
-
-        assertTrue($(".spin").is(Condition.visible));
-        Thread.sleep(15000);
-        String actTextNotification = $(".notification__content").getText();
-        assertTrue($(".notification").isDisplayed());
-        assertEquals(expTextNotification, actTextNotification);
+        $(".spin").shouldBe(Condition.visible, Duration.ofSeconds(15));
+        $(".notification__content").shouldHave(Condition.partialText("Встреча успешно забронирована на " + ldt),
+                        Duration.ofSeconds(15))
+                .shouldBe(Condition.visible);
     }
 
     @Test
-    public void shouldFillFormIfSelectedYearForward() throws InterruptedException {
-        String ldt = LocalDate.now().plusYears(1).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+    public void shouldFillFormIfSelectedMonthForward() {
+        String ldt = generatePlusDate(30);
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
-        for (int i = 0; i < 8; i++) {
-            $("[data-test-id='date'] .input__control").sendKeys("\b");
-        }
-        $("[data-test-id='date'] .input__control").setValue(
-                LocalDate.now().plusYears(1).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
-        );
+        $("[data-test-id='date'] input").sendKeys(Keys.chord(Keys.SHIFT, Keys.HOME), Keys.BACK_SPACE);
+        $("[data-test-id='date'] .input__control").setValue(ldt);
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
         $("[data-test-id='phone'] .input__control").setValue("+89635459562");
 
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String expTextNotification = "Встреча успешно забронирована на " + ldt;
+        $(".spin").shouldBe(Condition.visible, Duration.ofSeconds(15));
+        $(".notification__content").shouldHave(Condition.partialText("Встреча успешно забронирована на " + ldt),
+                        Duration.ofSeconds(15))
+                .shouldBe(Condition.visible);
+    }
 
-        assertTrue($(".spin").is(Condition.visible));
-        Thread.sleep(15000);
-        String actTextNotification = $(".notification__content").getText();
-        assertTrue($(".notification").isDisplayed());
-        assertEquals(expTextNotification, actTextNotification);
+    @Test
+    public void shouldFillFormIfSelectedYearForward() {
+        String ldt = generatePlusDate(365);
+        open(site);
+        $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
+        $("[data-test-id='date'] input").sendKeys(Keys.chord(Keys.SHIFT, Keys.HOME), Keys.BACK_SPACE);
+        $("[data-test-id='date'] .input__control").setValue(ldt);
+        $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
+        $("[data-test-id='phone'] .input__control").setValue("+89635459562");
+
+        $("[data-test-id='agreement']").click();
+        $("[type='button'].button").click();
+
+        $(".spin").shouldBe(Condition.visible, Duration.ofSeconds(15));
+        $(".notification__content").shouldHave(Condition.text("Встреча успешно забронирована на " + ldt),
+                        Duration.ofSeconds(15))
+                .shouldBe(Condition.visible);
     }
 
     @Test
     public void shouldFillFormIfCity2Letters() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Иж");
+        $$(".input__menu .menu-item__control").findBy(Condition.text("Ижевск")).click();
 
-        ElementsCollection ec = $$(".input__menu .menu-item__control");
-        for (int i = 0; i < 3; i++) {
-            if (ec.get(i).getOwnText().equals("Ижевск")) {
-                ec.get(i).click();
-                break;
-            }
-        }
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
         $("[data-test-id='phone'] .input__control").setValue("+89635452462");
 
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
-        ;
-        assertTrue($(".spin").isDisplayed());
-        assertDoesNotThrow(() -> $(".notification").shouldBe(Condition.visible, Duration.ofSeconds(15)));
-        assertTrue($(".notification").isDisplayed());
+        $(".spin").shouldBe(Condition.visible, Duration.ofSeconds(15));
+        $(".notification__content").shouldHave(Condition.text("Встреча успешно забронирована на " + generatePlusDate(3)),
+                        Duration.ofSeconds(15))
+                .shouldBe(Condition.visible);
     }
 
     @Test
-    public void shouldNotFillFormIfUnderlineName() throws InterruptedException {
+    public void shouldNotFillFormIfUnderlineName() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл_");
@@ -212,17 +167,13 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actText = $("[data-test-id='name'] .input__sub").getText();
-        String expName = "Имя и Фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы.";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expName, actText);
+        $("[data-test-id='name'] .input__sub").shouldHave(Condition.text("Имя и Фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы."));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfEngName() throws InterruptedException {
+    public void shouldNotFillFormIfEngName() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Воронеж");
         $("[data-test-id='name'] .input__control").sendKeys("Kirill");
@@ -231,17 +182,13 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actText = $("[data-test-id='name'] .input__sub").getText();
-        String expName = "Имя и Фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы.";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expName, actText);
+        $("[data-test-id='name'] .input__sub").shouldHave(Condition.text("Имя и Фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы."));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfEngCity() throws InterruptedException {
+    public void shouldNotFillFormIfEngCity() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Voronej");
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
@@ -250,17 +197,28 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actText = $("[data-test-id='city'] .input__sub").getText();
-        String expName = "Доставка в выбранный город недоступна";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expName, actText);
+        $("[data-test-id='city'] .input__sub").shouldHave(Condition.text("Доставка в выбранный город недоступна"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfChineseName() throws InterruptedException {
+    public void shouldNotFillFormIfSpacesInCity() {
+        open(site);
+        $("[data-test-id='city'] .input__control").sendKeys("Ижевск     ");
+        $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
+        $("[data-test-id='phone'] .input__control").setValue("+89635452462");
+
+        $("[data-test-id='agreement']").click();
+        $("[type='button'].button").click();
+
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $("[data-test-id='city'] .input__sub").shouldHave(Condition.text("Доставка в выбранный город недоступна "));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+    }
+
+    @Test
+    public void shouldNotFillFormIfChineseName() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Воронеж");
         $("[data-test-id='name'] .input__control").sendKeys("二月五 十八月");
@@ -269,17 +227,13 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actText = $("[data-test-id='name'] .input__sub").getText();
-        String expName = "Имя и Фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы.";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expName, actText);
+        $("[data-test-id='name'] .input__sub").shouldHave(Condition.text("Имя и Фамилия указаные неверно. Допустимы только русские буквы, пробелы и дефисы."));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfChineseCity() throws InterruptedException {
+    public void shouldNotFillFormIfChineseCity() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("二月五 十八月");
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
@@ -288,17 +242,13 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actText = $("[data-test-id='city'] .input__sub").getText();
-        String expName = "Доставка в выбранный город недоступна";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expName, actText);
+        $("[data-test-id='city'] .input__sub").shouldHave(Condition.text("Доставка в выбранный город недоступна"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormWithoutAgreement() throws InterruptedException {
+    public void shouldNotFillFormWithoutAgreement() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
@@ -306,13 +256,12 @@ public class AppTests {
 
         $("[type='button'].button").click();
 
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfPhoneLess() throws InterruptedException {
+    public void shouldNotFillFormIfPhoneLess() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
@@ -321,17 +270,13 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String expName = "Телефон указан неверно. Должно быть 11 цифр, например, +79012345678.";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        String actText = $("[data-test-id='phone'] .input__sub").getText();
-        assertEquals(expName, actText);
+        $("[data-test-id='phone'] .input__sub").shouldHave(Condition.text("Телефон указан неверно. Должно быть 11 цифр, например, +79012345678."));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfPhoneMore() throws InterruptedException {
+    public void shouldNotFillFormIfPhoneMore() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
@@ -340,17 +285,13 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String expName = "Телефон указан неверно. Должно быть 11 цифр, например, +79012345678.";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        String actText = $("[data-test-id='phone'] .input__sub").getText();
-        assertEquals(expName, actText);
+        $("[data-test-id='phone'] .input__sub").shouldHave(Condition.text("Телефон указан неверно. Должно быть 11 цифр, например, +79012345678."));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfNoPlusInPhone() throws InterruptedException {
+    public void shouldNotFillFormIfNoPlusInPhone() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
@@ -359,24 +300,18 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String expName = "Телефон указан неверно. Должно быть 11 цифр, например, +79012345678.";
-
-        assertFalse($(".spin").isDisplayed());
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        String actText = $("[data-test-id='phone'] .input__sub").getText();
-        assertEquals(expName, actText);
+        $("[data-test-id='phone'] .input__sub").shouldHave(Condition.text("Телефон указан неверно. Должно быть 11 цифр, например, +79012345678."));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfSelectedTomorrow() throws InterruptedException {
+    public void shouldNotFillFormIfSelectedTomorrow() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
-        for (int i = 0; i < 8; i++) {
-            $("[data-test-id='date'] .input__control").sendKeys("\b");
-        }
+        $("[data-test-id='date'] input").sendKeys(Keys.chord(Keys.SHIFT, Keys.HOME), Keys.BACK_SPACE);
         $("[data-test-id='date'] .input__control").setValue(
-                LocalDate.now().minusDays(1).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                generateMinusDate(1)
         );
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
         $("[data-test-id='phone'] .input__control").setValue("+89635459562");
@@ -384,24 +319,18 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actText = $("[data-test-id='date'] .input__sub").getText();
-        String expText = "Заказ на выбранную дату невозможен";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expText, actText);
+        $("[data-test-id='date'] .input__sub").shouldHave(Condition.text("Заказ на выбранную дату невозможен"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfSelectedMonthBack() throws InterruptedException {
+    public void shouldNotFillFormIfSelectedMonthBack() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
-        for (int i = 0; i < 8; i++) {
-            $("[data-test-id='date'] .input__control").sendKeys("\b");
-        }
+        $("[data-test-id='date'] input").sendKeys(Keys.chord(Keys.SHIFT, Keys.HOME), Keys.BACK_SPACE);
         $("[data-test-id='date'] .input__control").setValue(
-                LocalDate.now().minusMonths(1).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                generateMinusDate(30)
         );
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
         $("[data-test-id='phone'] .input__control").setValue("+89635459562");
@@ -409,24 +338,18 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actText = $("[data-test-id='date'] .input__sub").getText();
-        String expText = "Заказ на выбранную дату невозможен";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expText, actText);
+        $("[data-test-id='date'] .input__sub").shouldHave(Condition.text("Заказ на выбранную дату невозможен"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfSelectedYearBack() throws InterruptedException {
+    public void shouldNotFillFormIfSelectedYearBack() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
-        for (int i = 0; i < 8; i++) {
-            $("[data-test-id='date'] .input__control").sendKeys("\b");
-        }
+        $("[data-test-id='date'] input").sendKeys(Keys.chord(Keys.SHIFT, Keys.HOME), Keys.BACK_SPACE);
         $("[data-test-id='date'] .input__control").setValue(
-                LocalDate.now().minusYears(1).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                generateMinusDate(365)
         );
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
         $("[data-test-id='phone'] .input__control").setValue("+89635459562");
@@ -434,17 +357,13 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actText = $("[data-test-id='date'] .input__sub").getText();
-        String expText = "Заказ на выбранную дату невозможен";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expText, actText);
+        $("[data-test-id='date'] .input__sub").shouldHave(Condition.text("Заказ на выбранную дату невозможен"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfNameIsEmpty() throws InterruptedException {
+    public void shouldNotFillFormIfNameIsEmpty() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
         $("[data-test-id='phone'] .input__control").setValue("+89635459562");
@@ -452,18 +371,13 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actName = $("[data-test-id='name'] .input__sub").getText();
-        String expText = "Поле обязательно для заполнения";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expText, actName);
+        $("[data-test-id='name'] .input__sub").shouldHave(Condition.text("Поле обязательно для заполнения"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfCityIsEmpty() throws InterruptedException {
+    public void shouldNotFillFormIfCityIsEmpty() {
         open(site);
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
         $("[data-test-id='phone'] .input__control").setValue("+89635459562");
@@ -471,17 +385,13 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actCity = $("[data-test-id='city'] .input__sub").getText();
-        String expText = "Поле обязательно для заполнения";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expText, actCity);
+        $("[data-test-id='city'] .input__sub").shouldHave(Condition.text("Поле обязательно для заполнения"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfPhoneIsEmpty() throws InterruptedException {
+    public void shouldNotFillFormIfPhoneIsEmpty() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
@@ -489,40 +399,29 @@ public class AppTests {
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actCity = $("[data-test-id='phone'] .input__sub").getText();
-        String expText = "Поле обязательно для заполнения";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expText, actCity);
+        $("[data-test-id='phone'] .input__sub").shouldHave(Condition.text("Поле обязательно для заполнения"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfDateIsEmpty() throws InterruptedException {
+    public void shouldNotFillFormIfDateIsEmpty() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
-        for (int i = 0; i < 8; i++) {
-            $("[data-test-id='date'] .input__control").sendKeys("\b");
-        }
+        $("[data-test-id='date'] input").sendKeys(Keys.chord(Keys.SHIFT, Keys.HOME), Keys.BACK_SPACE);
         $("[data-test-id='phone'] .input__control").setValue("+89635459562");
 
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
 
-        String actCity = $("[data-test-id='date'] .input__sub").getText();
-        String expText = "Неверно введена дата";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-
-        assertTrue($(".notification").is(Condition.hidden));
-        assertEquals(expText, actCity);
+        $("[data-test-id='date'] .input__sub").shouldHave(Condition.text("Неверно введена дата"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldNotFillFormIfNoAgreement() throws InterruptedException {
+    public void shouldNotFillFormIfNoAgreement() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("Ижевск");
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
@@ -530,45 +429,37 @@ public class AppTests {
 
         $("[type='button'].button").click();
 
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertDoesNotThrow(() -> $("[data-test-id='agreement'] .input_invalid"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $("[data-test-id='agreement'] .input_invalid");
     }
 
     @Test
-    public void shouldNotFillFormIfAllAreEmpty() throws InterruptedException {
+    public void shouldNotFillFormIfAllAreEmpty() {
         open(site);
-        for (int i = 0; i < 8; i++) {
-            $("[data-test-id='date'] .input__control").sendKeys("\b");
-        }
+        $("[data-test-id='date'] input").sendKeys(Keys.chord(Keys.SHIFT, Keys.HOME), Keys.BACK_SPACE);
         $("[type='button'].button").click();
 
-        String actCity = $("[data-test-id='city'] .input__sub").getText();
-        String expCity = "Поле обязательно для заполнения";
-
-        assertTrue($(".spin").is(Condition.hidden));
-        Thread.sleep(15000);
-        assertEquals(expCity, actCity);
-        assertTrue($(".notification").is(Condition.hidden));
-        assertDoesNotThrow(() -> $("[data-test-id='agreement'] .input_invalid"));
+        $("[data-test-id='city'] .input__sub").shouldHave(Condition.text("Поле обязательно для заполнения"));
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $("[data-test-id='agreement'] .input_invalid");
     }
 
     @Test
-    public void shouldNotFillFormIfCity1Letter() {
+    public void shouldNotFillFormIfCity1Letters() {
         open(site);
         $("[data-test-id='city'] .input__control").sendKeys("И");
-        assertTrue($("[data-test-id='city'] .popup_visible").is(Condition.hidden));
+        $$(".input__menu .menu-tem__control").findBy(Condition.text("Ижевск")).shouldBe(Condition.hidden);
 
         $("[data-test-id='name'] .input__control").sendKeys("Кирилл");
         $("[data-test-id='phone'] .input__control").setValue("+89635452462");
 
         $("[data-test-id='agreement']").click();
         $("[type='button'].button").click();
-        ;
-        assertTrue($(".spin").is(Condition.hidden));
-        assertDoesNotThrow(() -> $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15)));
-        assertTrue($(".notification").is(Condition.hidden));
+
+        $(".spin").shouldBe(Condition.hidden, Duration.ofSeconds(15));
+        $(".notification").shouldBe(Condition.hidden, Duration.ofSeconds(15));
     }
 
 }
